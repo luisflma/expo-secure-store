@@ -125,7 +125,7 @@ class AuthenticationHelper(
     }
 
     val biometricManager = BiometricManager.from(context)
-    when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
+    when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)) {
       BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE, BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
         promise.reject(
           "ERR_SECURESTORE_AUTH_NOT_AVAILABLE",
@@ -144,10 +144,16 @@ class AuthenticationHelper(
 
     val title = options.getString(AUTHENTICATION_PROMPT_PROPERTY, " ")
 
-    val promptInfo = PromptInfo.Builder()
-      .setTitle(title)
-      .setNegativeButtonText(context.getString(android.R.string.cancel))
-      .build()
+    val promptInfoBuilder = PromptInfo.Builder()
+    promptInfoBuilder.setTitle(title)
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R){
+      promptInfoBuilder.setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+    } else {
+      promptInfoBuilder.setNegativeButtonText(context.getString(android.R.string.cancel))
+    }
+
+    val promptInfo = promptInfoBuilder.build()
     val fragmentActivity = getCurrentActivity() as FragmentActivity?
     if (fragmentActivity == null) {
       promise.reject(

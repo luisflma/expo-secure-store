@@ -389,12 +389,17 @@ public class SecureStoreModule extends ExportedModule {
     public KeyStore.SecretKeyEntry initializeKeyStoreEntry(KeyStore keyStore, ReadableArguments options) throws GeneralSecurityException {
       String keystoreAlias = getKeyStoreAlias(options);
       int keyPurposes = KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT;
-      AlgorithmParameterSpec algorithmSpec = new KeyGenParameterSpec.Builder(keystoreAlias, keyPurposes)
-          .setKeySize(AES_KEY_SIZE_BITS)
-          .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-          .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-          .setUserAuthenticationRequired(options.getBoolean(AuthenticationHelper.REQUIRE_AUTHENTICATION_PROPERTY, false))
-          .build();
+      KeyGenParameterSpec.Builder algorithmSpecBuilder = new KeyGenParameterSpec.Builder(keystoreAlias, keyPurposes);
+      algorithmSpecBuilder.setKeySize(AES_KEY_SIZE_BITS);
+      algorithmSpecBuilder.setBlockModes(KeyProperties.BLOCK_MODE_GCM);
+      algorithmSpecBuilder.setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE);
+      algorithmSpecBuilder.setUserAuthenticationRequired(options.getBoolean(AuthenticationHelper.REQUIRE_AUTHENTICATION_PROPERTY, false));
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        algorithmSpecBuilder.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG | KeyProperties.AUTH_DEVICE_CREDENTIAL);
+      }
+
+      AlgorithmParameterSpec algorithmSpec = algorithmSpecBuilder.build();
 
       KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, keyStore.getProvider());
       keyGenerator.init(algorithmSpec);
